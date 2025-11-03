@@ -519,6 +519,7 @@ impl WorkspaceCache {
 pub(crate) struct Workspace {
     root: PathBuf,
     projects: Vec<Arc<Project>>,
+    project_parallelism: bool,
 }
 
 impl Workspace {
@@ -555,9 +556,11 @@ impl Workspace {
     ) -> Result<Self, Error> {
         if let Some(config) = config {
             let project = Project::from_config_file(config.into(), Some(root.clone()))?;
+            let project_parallelism = project.config().prek_project_parallelism.unwrap_or(false);
             return Ok(Self {
                 root,
                 projects: vec![Arc::new(project)],
+                project_parallelism,
             });
         }
 
@@ -620,8 +623,18 @@ impl Workspace {
             return Err(MissingPreCommitConfig);
         }
 
-        let mut workspace = Self { root, projects };
+        let mut workspace = Self {
+            root,
+            projects,
+            project_parallelism: false,
+        };
         workspace.sort_and_index_projects();
+        workspace.project_parallelism = workspace
+            .projects
+            .iter()
+            .find(|p| p.is_root())
+            .and_then(|p| p.config().prek_project_parallelism)
+            .unwrap_or(false);
 
         Ok(workspace)
     }
@@ -720,6 +733,10 @@ impl Workspace {
 
     pub(crate) fn projects(&self) -> &[Arc<Project>] {
         &self.projects
+    }
+
+    pub(crate) fn project_parallelism_enabled(&self) -> bool {
+        self.project_parallelism
     }
 
     /// Initialize remote repositories for all projects.

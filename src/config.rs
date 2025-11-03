@@ -289,6 +289,10 @@ pub struct Config {
     /// Set to true to have prek stop running hooks after the first failure.
     /// Default is false.
     pub fail_fast: Option<bool>,
+    /// Enable running projects that share the same depth in parallel.
+    /// Defaults to false.
+    #[serde(default)]
+    pub prek_project_parallelism: Option<bool>,
     /// The minimum version of prek required to run this configuration.
     #[serde(deserialize_with = "deserialize_minimum_version", default)]
     pub minimum_prek_version: Option<String>,
